@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Forecaster</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;5_00;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --header-bg: #2c3e50;
+            --primary-blue: #3498db;
+            --primary-blue-dark: #2980b9;
+            --text-dark: #34495e;
+            --text-light: #7f8c8d;
+            --border-color: #ecf0f1;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --yellow-bg: #fdf5e6;
+            --yellow-border: #f39c12;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        header {
+            width: 100%;
+            background-color: var(--header-bg);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        header h1 { font-family: 'Poppins', sans-serif; font-size: 1.8rem; }
+        
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.07);
+        }
+
+        
+        .tab-buttons {
+            display: flex;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-light);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            background-color: var(--primary-blue);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+       
+        .control-panel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        .control-panel-single {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            align-items: flex-end;
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .input-group label {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+        .input-group input[type="date"] {
+            padding: 12px 15px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+        }
+        .action-button {
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            background-color: var(--primary-blue);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            height: 50px;
+        }
+        .action-button:hover { background-color: var(--primary-blue-dark); }
+        .action-button:disabled { background-color: #bdc3c7; }
+
+        .loader {
+            width: 20px; height: 20px; border: 3px solid #fff;
+            border-bottom-color: transparent; border-radius: 50%;
+            display: inline-block; animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .hidden { display: none; }
+
+        
+        .result-card { text-align: center; }
+        .price-comparison {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .price-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+        }
+        .price-box h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .price-box p {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+        #ft-prediction-text { color: var(--primary-blue); }
+        #ft-actual-text { color: var(--text-dark); }
+        #ft-accuracy-text {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        #ft-accuracy-text .positive { color: var(--green); }
+        #ft-accuracy-text .negative { color: var(--red); }
+        .disclaimer {
+            margin-top: 20px; padding: 15px; border-radius: 8px;
+            background-color: var(--yellow-bg); border: 1px solid var(--yellow-border);
+            color: #856404; font-weight: 500;
+        }
+        .error-card {
+            background-color: #ffebeB;
+            border: 1px solid var(--red);
+            color: var(--red);
+            font-weight: 600;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+       
+        #summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            background-color: var(--bg-color);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .stat-item strong {
+            display: block;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        .stat-item p {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .stat-item .details {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <header>
+            <h1>BitCoin Price Dashboard</h1>
+        </header>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="tab-1">Single Date Forecast</button>
+            <button class="tab-btn" data-tab="tab-2">Historical Back-tester</button>
+        </div>
+
+        <div id="tab-1" class="tab-content active">
+            <div class="card">
+                <div class="control-panel-single">
+                    <div class="input-group">
+                        <label for="ft-date-picker">Select a Date (Past or Future):</label>
+                        <input type="date" id="ft-date-picker">
+                    </div>
+                    <button class="action-button" id="ft-predict-btn">
+                        <span id="ft-btn-text">Predict</span>
+                        <div id="ft-loader" class="loader hidden"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card error-card hidden" id="ft-error-container">
+                <p id="ft-error-text">...</p>
+            </div>
+
+            <div class="card result-card hidden" id="ft-result-container">
+                <h2 id="ft-result-date-text">Prediction for...</h2>
+                <div class="price-comparison">
+                    <div class="price-box">
+                        <h3>Predicted Price</h3>
+                        <p id="ft-prediction-text">$...</p>
+                    </div>
+                    <div class="price-box hidden" id="ft-actual-price-box">
+                        <h3>Actual Price</h3>
+                        <p id="ft-actual-text">$...</p>
+                    </div>
+                </div>
+                <p id="ft-accuracy-text" class="hidden"></p>
+                <p class="disclaimer hidden" id="ft-disclaimer-box">
+                    <strong>Warning:</strong> This future prediction is not guaranteed. It generates
+                    <span id="ft-day-count"></span> days in a row.
+                </p>
+            </div>
+        </div>
+
+        <div id="tab-2" class="tab-content">
+            <div class="card">
+                <div class="control-panel-grid">
+                    <div class="input-group">
+                        <label for="bt-start-date">Start Date:</label>
+                        <input type="date" id="bt-start-date" value="2022-01-01">
+                    </div>
+                    <div class="input-group">
+                        <label for="bt-end-date">End Date:</label>
+                        <input type="date" id="bt-end-date" value="2022-03-01">
+                    </div>
+                    <button class="action-button" id="bt-run-btn">
+                        <span id="bt-btn-text">Run Back-test</span>
+                        <div id="bt-loader" class.="loader hidden"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card error-card hidden" id="bt-error-container">
+                <p id="bt-error-text">...</p>
+            </div>
+
+            <div class="card hidden" id="bt-results-container">
+                <div id="summary-stats"></div>
+                <div id="chart-container">
+                    <canvas id="predictionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        
+        const formatCurrency = (num) => num.toLocaleString('en-US', {
+            style: 'currency', currency: 'USD',
+            minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+        
+        let predictionChart; 
+
+        
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                tabContents.forEach(content => {
+                    if (content.id === button.dataset.tab) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        
+        const ftPredictBtn = document.getElementById('ft-predict-btn');
+        const ftBtnText = document.getElementById('ft-btn-text');
+        const ftLoader = document.getElementById('ft-loader');
+        const ftDatePicker = document.getElementById('ft-date-picker');
+        const ftErrorContainer = document.getElementById('ft-error-container');
+        const ftErrorText = document.getElementById('ft-error-text');
+        const ftResultContainer = document.getElementById('ft-result-container');
+        const ftResultDateText = document.getElementById('ft-result-date-text');
+        const ftPredictionText = document.getElementById('ft-prediction-text');
+        const ftActualPriceBox = document.getElementById('ft-actual-price-box');
+        const ftActualText = document.getElementById('ft-actual-text');
+        const ftAccuracyText = document.getElementById('ft-accuracy-text');
+        const ftDisclaimerBox = document.getElementById('ft-disclaimer-box');
+        const ftDayCountSpan = document.getElementById('ft-day-count');
+
+        ftDatePicker.value = new Date().toISOString().split('T')[0];
+        ftPredictBtn.addEventListener('click', handleFuturePrediction);
+
+        async function handleFuturePrediction() {
+            setLoading('ft', true);
+            ftErrorContainer.classList.add('hidden');
+            ftResultContainer.classList.add('hidden');
+
+            const selectedDate = ftDatePicker.value;
+            if (!selectedDate) {
+                showError('ft', "Please select a date.");
+                setLoading('ft', false);
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: selectedDate })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+
+                if (data.type === 'past') {
+                    showPastPrediction(data);
+                } else if (data.type === 'future') {
+                    showFuturePrediction(data);
+                }
+            } catch (error) {
+                showError('ft', `Failed to fetch: ${error.message}. Is the server running?`);
+            } finally {
+                setLoading('ft', false);
+            }
+        }
+
+        function showPastPrediction(data) {
+            const formattedDate = new Date(data.date + 'T00:00:00').toLocaleDateString('en-US', { dateStyle: 'long' });
+            const predPrice = formatCurrency(data.prediction);
+            const actualPrice = formatCurrency(data.actual);
+            
+            const diff = data.actual - data.prediction;
+            const accuracy = 100 - (Math.abs(diff) / data.actual * 100);
+            
+            ftResultDateText.innerText = `Historical Analysis for ${formattedDate}`;
+            ftPredictionText.innerText = predPrice;
+            ftActualText.innerText = actualPrice;
+            ftAccuracyText.innerHTML = `Model was off by <strong style="color:${diff > 0 ? 'var(--green)' : 'var(--red)'}">
+                                    ${formatCurrency(Math.abs(diff))}
+                                  </strong> (${accuracy.toFixed(2)}% accurate).`;
+            
+            ftActualPriceBox.classList.remove('hidden');
+            ftAccuracyText.classList.remove('hidden');
+            ftDisclaimerBox.classList.add('hidden');
+            ftResultContainer.classList.remove('hidden');
+        }
+
+        function showFuturePrediction(data) {
+            const formattedDate = new Date(data.date + 'T00:00:00').toLocaleDateString('en-US', { dateStyle: 'long' });
+            ftResultDateText.innerText = `Future Forecast for ${formattedDate}`;
+            ftPredictionText.innerText = formatCurrency(data.prediction);
+            ftDayCountSpan.innerText = data.days_predicted;
+
+            ftActualPriceBox.classList.add('hidden');
+            ftAccuracyText.classList.add('hidden');
+            ftDisclaimerBox.classList.remove('hidden');
+            ftResultContainer.classList.remove('hidden');
+        }
+
+        
+        const btRunBtn = document.getElementById('bt-run-btn');
+        const btBtnText = document.getElementById('bt-btn-text');
+        const btLoader = document.getElementById('bt-loader');
+        const btStartDatePicker = document.getElementById('bt-start-date');
+        const btEndDatePicker = document.getElementById('bt-end-date');
+        const btErrorContainer = document.getElementById('bt-error-container');
+        const btErrorText = document.getElementById('bt-error-text');
+        const btResultsContainer = document.getElementById('bt-results-container');
+        const summaryStats = document.getElementById('summary-stats');
+        const chartCanvas = document.getElementById('predictionChart');
+
+        btRunBtn.addEventListener('click', handleBacktest);
+
+        async function handleBacktest() {
+            setLoading('bt', true);
+            btErrorContainer.classList.add('hidden');
+            btResultsContainer.classList.add('hidden');
+
+            const startDate = btStartDatePicker.value;
+            const endDate = btEndDatePicker.value;
+
+            if (!startDate || !endDate) {
+                showError('bt', "Please select both a start and end date.");
+                setLoading('bt', false);
+                return;
+            }
+            if (new Date(startDate) >= new Date(endDate)) {
+                showError('bt', "Start date must be before the end date.");
+                setLoading('bt', false);
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5000/backtest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+                
+                showBacktestResults(data);
+            } catch (error) {
+                showError('bt', `Failed to fetch: ${error.message}. Is the server running?`);
+            } finally {
+                setLoading('bt', false);
+            }
+        }
+
+        function showBacktestResults(data) {
+            const formattedMae = formatCurrency(data.mae);
+            const formattedStartPred = formatCurrency(data.start_date_pred);
+            const formattedStartActual = formatCurrency(data.start_date_actual);
+            const formattedEndPred = formatCurrency(data.end_date_pred);
+            const formattedEndActual = formatCurrency(data.end_date_actual);
+            const startDate = data.dates[0];
+            const endDate = data.dates[data.dates.length - 1];
+
+            summaryStats.innerHTML = `
+                <div class="stat-item"><strong>Total Days Tested</strong><p>${data.dates.length}</p></div>
+                <div class="stat-item"><strong>Average Error (MAE)</strong><p>${formattedMae}</p></div>
+                <div class="stat-item"><strong>Start: ${startDate}</strong><p>${formattedStartPred}</p><span class="details">Actual: ${formattedStartActual}</span></div>
+                <div class="stat-item"><strong>End: ${endDate}</strong><p>${formattedEndPred}</p><span class="details">Actual: ${formattedEndActual}</span></div>
+            `;
+            
+            if (predictionChart) predictionChart.destroy();
+
+            const ctx = chartCanvas.getContext('2d');
+            predictionChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: [
+                        { label: 'Actual Price', data: data.actuals, borderColor: 'rgba(52, 73, 94, 1.0)', borderWidth: 2, pointRadius: 0 },
+                        { label: 'Predicted Price', data: data.predictions, borderColor: 'rgba(52, 152, 219, 1.0)', borderWidth: 2, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { type: 'time', time: { unit: 'month' }, title: { display: true, text: 'Date' } },
+                        y: { title: { display: true, text: 'Price (USD)' } }
+                    },
+                    plugins: { tooltip: { mode: 'index', intersect: false } }
+                }
+            });
+            btResultsContainer.classList.remove('hidden');
+        }
+        
+        
+        function setLoading(tab, isLoading) {
+            if (tab === 'ft') {
+                ftPredictBtn.disabled = isLoading;
+                ftBtnText.classList.toggle('hidden', isLoading);
+                ftLoader.classList.toggle('hidden', !isLoading);
+            } else if (tab === 'bt') {
+                btRunBtn.disabled = isLoading;
+                btBtnText.classList.toggle('hidden', isLoading);
+                btLoader.classList.toggle('hidden', !isLoading);
+            }
+        }
+        function showError(tab, message) {
+            if (tab === 'ft') {
+                ftErrorContainer.classList.remove('hidden');
+                ftErrorText.innerText = message;
+            } else if (tab === 'bt') {
+                btErrorContainer.classList.remove('hidden');
+                btErrorText.innerText = message;
+            }
+        }
+
+    </script>
+</body>
+</html>
